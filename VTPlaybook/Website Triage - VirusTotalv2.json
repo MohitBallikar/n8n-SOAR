@@ -1,0 +1,688 @@
+{
+  "name": "Website Triage - VirusTotal",
+  "nodes": [
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://www.virustotal.com/api/v3/urls",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "virusTotalApi",
+        "sendBody": true,
+        "contentType": "multipart-form-data",
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "url",
+              "value": "={{$json[\"body\"][\"url\"]}}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.3,
+      "position": [
+        -912,
+        64
+      ],
+      "id": "d05042bb-04d8-4566-8dc2-1455b48ea028",
+      "name": "VT - Submit URL",
+      "credentials": {
+        "virusTotalApi": {
+          "id": "YbbGq6lQYr5FpZKt",
+          "name": "VirusTotal account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "url": "={{ $('VT - Submit URL').item.json.data.links.self }}",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "virusTotalApi",
+        "options": {
+          "response": {
+            "response": {
+              "responseFormat": "json"
+            }
+          }
+        }
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.3,
+      "position": [
+        -448,
+        64
+      ],
+      "id": "7884d7d0-a564-4f87-b100-35519622a880",
+      "name": "Get VT Results",
+      "credentials": {
+        "virusTotalApi": {
+          "id": "YbbGq6lQYr5FpZKt",
+          "name": "VirusTotal account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "amount": 25
+      },
+      "type": "n8n-nodes-base.wait",
+      "typeVersion": 1.1,
+      "position": [
+        -624,
+        64
+      ],
+      "id": "0889941c-2759-4df2-9849-cc54178fed01",
+      "name": "Wait for VT to Process",
+      "webhookId": "55a8bded-2133-4b0b-b680-a9be438fa940"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://172.17.0.1:8088/services/collector",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Authorization",
+              "value": "b737f8b9-1e49-4bb3-99d3-4f8c665ccdf1"
+            },
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"sourcetype\": \"n8n:workflow\",\n  \"event\": \"Test event from n8n - {{ $now }}\"\n}",
+        "options": {
+          "allowUnauthorizedCerts": true
+        }
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.3,
+      "position": [
+        -2304,
+        -544
+      ],
+      "id": "6f75d6cc-6c55-4c79-aa18-46098494f8c0",
+      "name": "HTTP Request",
+      "disabled": true
+    },
+    {
+      "parameters": {
+        "content": " curl -k https://192.168.1.102:8088/services/collector \\\n        -H \"Authorization: Splunk b737f8b9-1e49-4bb3-99d3-4f8c665ccdf1\" \\\n        -d '{\"sourcetype\": \"n8n:workflow\", \"event\": \"hello from curl - header version\"}'",
+        "height": 192,
+        "width": 608
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        -736,
+        -208
+      ],
+      "id": "664effed-0c0d-42be-8fe7-987f9cb362cb",
+      "name": "Sticky Note"
+    },
+    {
+      "parameters": {
+        "content": "cd ~/Documents/splunk/bin\nsudo ./splunk start\n\nto spin up local splunk instance\n\nsudo Documents/splunk/bin/splunk restart\n\nto restart, should simplify in future",
+        "height": 208,
+        "width": 384
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        -720,
+        -512
+      ],
+      "id": "aaf07bd0-0d53-435a-9ae9-5b36d78f94b0",
+      "name": "Sticky Note1"
+    },
+    {
+      "parameters": {
+        "authentication": "basicAuth",
+        "resource": "incident",
+        "operation": "create",
+        "short_description": "Check out this Bad website to block/monitor!",
+        "additionalFields": {
+          "caller_id": "={{ $json.sys_id }}",
+          "description": "={{ $('Slack Message: Risky Domain').item.json.message.text }}\n"
+        }
+      },
+      "type": "n8n-nodes-base.serviceNow",
+      "typeVersion": 1,
+      "position": [
+        896,
+        -32
+      ],
+      "id": "f9d13b6e-d5b8-4fc0-a966-cef2785f40de",
+      "name": "Create an incident",
+      "credentials": {
+        "serviceNowBasicApi": {
+          "id": "bhTfB9NPjDOZ12Ps",
+          "name": "ServiceNow Basic Auth account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "httpMethod": "=POST",
+        "path": "=phish-alert",
+        "responseMode": "responseNode",
+        "options": {
+          "responseHeaders": {
+            "entries": [
+              {
+                "name": "Content-Type",
+                "value": "application/json"
+              }
+            ]
+          }
+        }
+      },
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2.1,
+      "position": [
+        -1392,
+        64
+      ],
+      "id": "649c2fb3-91db-4b93-803f-4c5c80c1132d",
+      "name": "Manual Call for Website Reputation Check",
+      "webhookId": "e6c68877-05f1-4dbf-b5e3-3ce541851c9b",
+      "alwaysOutputData": false
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "{\"status\": \"received\"}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.4,
+      "position": [
+        -1184,
+        64
+      ],
+      "id": "f05027a1-f649-49dc-b5a1-6fd5cb1d9c23",
+      "name": "Confirmation, from CURL"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "b3ef73f5-03f7-4ede-b83e-cb1460ab0516",
+              "leftValue": "={{ $json.risk_score }}",
+              "rightValue": 10,
+              "operator": {
+                "type": "number",
+                "operation": "gt"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        0,
+        64
+      ],
+      "id": "133c02c1-aaa9-4d43-bcfd-481481863e6a",
+      "name": "If Statement: If Dangerous, inform and track; If low-risk just Inform"
+    },
+    {
+      "parameters": {
+        "select": "channel",
+        "channelId": {
+          "__rl": true,
+          "value": "C09RXLREE80",
+          "mode": "id"
+        },
+        "text": "=The scanned URL {{ $json.url }} was clean!",
+        "otherOptions": {
+          "includeLinkToWorkflow": false
+        }
+      },
+      "type": "n8n-nodes-base.slack",
+      "typeVersion": 2.3,
+      "position": [
+        208,
+        192
+      ],
+      "id": "57bad547-c8a4-47bb-af7d-d03f09490faa",
+      "name": "Slack Message: Low Risk Domain",
+      "webhookId": "85cc1fc6-3bee-4ba6-a589-2737713097f6",
+      "credentials": {
+        "slackApi": {
+          "id": "FYxrwbg59W8PDvDK",
+          "name": "Slack account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "select": "channel",
+        "channelId": {
+          "__rl": true,
+          "value": "C09RXLREE80",
+          "mode": "id"
+        },
+        "text": "=Here is your risk score from your recent scan: [{{ $json.risk_score }}/100]!\nThe scanned URL was: {{ $json.url }}",
+        "otherOptions": {
+          "includeLinkToWorkflow": false
+        }
+      },
+      "type": "n8n-nodes-base.slack",
+      "typeVersion": 2.3,
+      "position": [
+        208,
+        -32
+      ],
+      "id": "6daa2467-dc83-477d-a17d-6d3a38f3bf8f",
+      "name": "Slack Message: Risky Domain",
+      "webhookId": "85cc1fc6-3bee-4ba6-a589-2737713097f6",
+      "credentials": {
+        "slackApi": {
+          "id": "FYxrwbg59W8PDvDK",
+          "name": "Slack account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "content": "Test curl:\n\ncurl -X POST http://localhost:5678/webhook-test/phish-alert \\\n     -H \"Content-Type: application/json\" \\\n     -d '{\"url\": \"http://spolaect.info\"}'\n\nReal curl:\n\ncurl -X POST http://localhost:5678/webhook/phish-alert \\\n     -H \"Content-Type: application/json\" \\\n     -d '{\"url\": \"http://spolaect.info\"}'",
+        "height": 240,
+        "width": 400
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        -1312,
+        -368
+      ],
+      "id": "a3592952-0318-48e7-803f-0bf3ef18dd94",
+      "name": "Sticky Note2"
+    },
+    {
+      "parameters": {
+        "jsCode": "// Access the VT stats (adjust path if your JSON is nested differently)\nconst stats = items[0].json.data.attributes.stats;\n\nconst url = $input.first().json.meta.url_info.url;\n\n// Convert string values to numbers (default to 0 if missing)\nconst malicious = parseInt(stats.malicious || '0', 10);\nconst suspicious = parseInt(stats.suspicious || '0', 10);\nconst undetected = parseInt(stats.undetected || '0', 10);\nconst harmless = parseInt(stats.harmless || '0', 10);  // Optional: include if needed\n\n// Calculate total engines (sum all stats) - this is usually the denominator for percentages\nconst total = malicious + suspicious + undetected + harmless;\n\n// Risk score: e.g., (malicious + suspicious) / total * 100 (as percentage)\nconst riskScore = total > 0 ? ((malicious + suspicious) / total) * 100 : 0;\n\n// Round to 2 decimals for cleanliness\nconst roundedRiskScore = Math.round(riskScore * 100) / 100;\n\n// Output simplified JSON (customize as needed)\nitems[0].json = {\n  url,\n  malicious,\n  suspicious,\n  undetected,\n  harmless,\n  total,\n  risk_score: roundedRiskScore,  // e.g., 15.5 for 15.5%\n  risk_percentage: `${roundedRiskScore}%`  // String version if needed\n};\n\nreturn items;"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -1984,
+        -480
+      ],
+      "id": "468910bf-c8f3-41fa-9f27-01679e777bb9",
+      "name": "Score Calc- JavaScript",
+      "disabled": true
+    },
+    {
+      "parameters": {
+        "language": "python",
+        "pythonCode": "# n8n Python Code Node – VirusTotal URL Scan Result Parser\n#items = input_data  # This is the list of items n8n provides\n\nfor item in items:\n    json_data = item.get(\"json\", {})\n    \n    # Extract the main data object\n    data = json_data.get(\"data\", {})\n    attributes = data.get(\"attributes\", {})\n    stats = attributes.get(\"stats\", {})\n    \n    # Extract the original URL from meta (this is where VT puts the submitted URL)\n    meta = json_data.get(\"meta\", {})\n    url_info = meta.get(\"url_info\", {})\n    url = url_info.get(\"url\", \"unknown\")\n    \n    # Safely get detection counts (some may be missing)\n    malicious = int(stats.get(\"malicious\", 0))\n    suspicious = int(stats.get(\"suspicious\", 0))\n    harmless = int(stats.get(\"harmless\", 0))\n    undetected = int(stats.get(\"undetected\", 0))\n    timeout = int(stats.get(\"timeout\", 0))  # optional, usually 0 for URLs\n    \n    # Total engines that returned a result\n    total_engines = malicious + suspicious + harmless + undetected + timeout\n    \n    # Risk calculation: (malicious + suspicious) / total engines\n    risk_score = (malicious + suspicious) / total_engines * 100 if total_engines > 0 else 0\n    risk_score_rounded = round(risk_score, 2)\n    \n    # Final clean output\n    item[\"json\"] = {\n        \"url\": url,\n        \"malicious\": malicious,\n        \"suspicious\": suspicious,\n        \"harmless\": harmless,\n        \"undetected\": undetected,\n        \"timeout\": timeout,\n        \"total_engines\": total_engines,\n        \"risk_score\": risk_score_rounded,           # e.g. 11.22\n        \"risk_percentage\": f\"{risk_score_rounded}%\", # e.g. \"11.22%\"\n        \"vt_scan_id\": data.get(\"id\"),\n        \"vt_permalink\": data.get(\"links\", {}).get(\"item\"),\n        \"scan_date\": attributes.get(\"date\")\n    }\n\n# Return modified items\nreturn items"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -208,
+        64
+      ],
+      "id": "b154f1a9-2e59-46fc-b178-86c930ceb90e",
+      "name": "Score Calc - Python"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://172.17.0.1:8088/services/collector",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Authorization",
+              "value": "Splunk b737f8b9-1e49-4bb3-99d3-4f8c665ccdf1"
+            },
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "sourcetype",
+              "value": "n8n:workflow"
+            },
+            {
+              "name": "event",
+              "value": "=n8n → Splunk test successful at {{$now}}\n\n{{ $('Slack Message: Risky Domain').item.json.message.text }}"
+            }
+          ]
+        },
+        "options": {
+          "allowUnauthorizedCerts": true
+        }
+      },
+      "name": "Splunk Logging Report",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4,
+      "position": [
+        688,
+        -32
+      ],
+      "id": "8df48ab8-7b63-4dcc-aa2d-7e28a1088ca1"
+    },
+    {
+      "parameters": {
+        "sendTo": "mohitballikar@gmail.com",
+        "subject": "Results",
+        "message": "=This url: {{ $('Score Calc - Python').item.json.url }} has a score of {{ $('Score Calc - Python').item.json.risk_score }}/100! \n\nTake action and look into this!",
+        "options": {
+          "appendAttribution": false
+        }
+      },
+      "type": "n8n-nodes-base.gmail",
+      "typeVersion": 2.1,
+      "position": [
+        464,
+        -32
+      ],
+      "id": "6a3cbdbf-1c0f-4f5c-bb66-82f3c46621b1",
+      "name": "Gmail: This site is risky",
+      "webhookId": "0743a392-b9a5-4e87-a1ef-c000af68c143",
+      "credentials": {
+        "gmailOAuth2": {
+          "id": "vQM8X2CeLLPp9OSS",
+          "name": "Gmail account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "authentication": "basicAuth",
+        "getOption": "user_name",
+        "user_name": "admin",
+        "options": {
+          "sysparm_display_value": "false"
+        }
+      },
+      "type": "n8n-nodes-base.serviceNow",
+      "typeVersion": 1,
+      "position": [
+        288,
+        -336
+      ],
+      "id": "34ac6e63-0c78-4855-9389-b436a782d597",
+      "name": "Get a user",
+      "credentials": {
+        "serviceNowBasicApi": {
+          "id": "bhTfB9NPjDOZ12Ps",
+          "name": "ServiceNow Basic Auth account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "content": "Incident Table for admin on servicenow:\n\nhttps://dev201345.service-now.com/incident_list.do?sysparm_query=sys_created_by%3Dadmin&sysparm_first_row=1&sysparm_view=\n\n\n\ncurrently hard-coding/pinning credential",
+        "height": 240,
+        "width": 432
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        112,
+        -608
+      ],
+      "id": "d20bcea8-3e9d-4c5f-b2d8-a8dd94500d27",
+      "name": "Sticky Note3"
+    },
+    {
+      "parameters": {
+        "content": "Use phishtank for some abusive urls"
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        -1840,
+        -48
+      ],
+      "id": "fd011b1b-21ee-4c85-a24f-9958605fdf9b",
+      "name": "Sticky Note4"
+    }
+  ],
+  "pinData": {
+    "Get a user": [
+      {
+        "json": {
+          "calendar_integration": "1",
+          "country": "",
+          "user_password": "$s$QGrAk5F4qKj6RoxSpAHQUagyyMDHNwnsG3i0fdp7isk=$P163CCGGuQJnX1WHqJWjYV+NLuPWTu6TGBySjr7na90=",
+          "last_login_time": "2025-11-24 05:44:13",
+          "source": "",
+          "sys_updated_on": "2025-11-13 06:38:15",
+          "building": "",
+          "web_service_access_only": "false",
+          "notification": "2",
+          "enable_multifactor_authn": "false",
+          "sys_updated_by": "developer.program.hop@snc",
+          "sys_created_on": "2007-07-03 18:48:47",
+          "sys_domain": {
+            "link": "https://dev201345.service-now.com/api/now/table/sys_user_group/global",
+            "value": "global"
+          },
+          "state": "",
+          "fax": "",
+          "identity_type": "unclassified",
+          "vip": "false",
+          "sys_created_by": "fred.luddy",
+          "zip": "",
+          "home_phone": "",
+          "time_format": "",
+          "last_login": "2025-11-24",
+          "default_perspective": "",
+          "active": "true",
+          "sys_domain_path": "",
+          "cost_center": "",
+          "phone": "",
+          "name": "System Administrator",
+          "employee_number": "",
+          "password_needs_reset": "false",
+          "gender": "",
+          "city": "",
+          "failed_attempts": "0",
+          "user_name": "admin",
+          "roles": "admin",
+          "manager_hp1": "/9K?1Q",
+          "title": "System Administrator",
+          "sys_class_name": "sys_user",
+          "sys_id": "6816f79cc0a8016401c5a33be04be441",
+          "federated_id": "iNE/5X5pGeyGaCbm6c3s+FHoSYZ4pKw+uYIHuExrag8=",
+          "internal_integration_user": "false",
+          "ldap_server": "",
+          "mobile_phone": "",
+          "street": "",
+          "company": "",
+          "department": {
+            "link": "https://dev201345.service-now.com/api/now/table/cmn_department/a581ab703710200044e0bfc8bcbe5de8",
+            "value": "a581ab703710200044e0bfc8bcbe5de8"
+          },
+          "first_name": "System",
+          "email": "admin@example.com",
+          "introduction": "",
+          "preferred_language": "",
+          "manager": "",
+          "locked_out": "false",
+          "sys_mod_count": "74",
+          "last_name": "Administrator",
+          "photo": "",
+          "avatar": "a5d3c898c3222010ae17dd981840dd8b",
+          "middle_name": "",
+          "sys_tags": "",
+          "time_zone": "",
+          "schedule": "",
+          "date_format": "",
+          "location": ""
+        }
+      }
+    ]
+  },
+  "connections": {
+    "VT - Submit URL": {
+      "main": [
+        [
+          {
+            "node": "Wait for VT to Process",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get VT Results": {
+      "main": [
+        [
+          {
+            "node": "Score Calc - Python",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Wait for VT to Process": {
+      "main": [
+        [
+          {
+            "node": "Get VT Results",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "HTTP Request": {
+      "main": [
+        []
+      ]
+    },
+    "Manual Call for Website Reputation Check": {
+      "main": [
+        [
+          {
+            "node": "Confirmation, from CURL",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Confirmation, from CURL": {
+      "main": [
+        [
+          {
+            "node": "VT - Submit URL",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "If Statement: If Dangerous, inform and track; If low-risk just Inform": {
+      "main": [
+        [
+          {
+            "node": "Slack Message: Risky Domain",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Slack Message: Low Risk Domain",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Slack Message: Risky Domain": {
+      "main": [
+        [
+          {
+            "node": "Gmail: This site is risky",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Score Calc - Python": {
+      "main": [
+        [
+          {
+            "node": "If Statement: If Dangerous, inform and track; If low-risk just Inform",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Splunk Logging Report": {
+      "main": [
+        [
+          {
+            "node": "Create an incident",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Gmail: This site is risky": {
+      "main": [
+        [
+          {
+            "node": "Splunk Logging Report",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get a user": {
+      "main": [
+        [
+          {
+            "node": "Create an incident",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": true,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "versionId": "945698df-d88a-4fd6-a484-5491cacb44c8",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "4250a72d4ecc5a77a08d0ed3c366efd9ab21ba75fd54afc4200b2318ac0451c7"
+  },
+  "id": "kSjgmruHn1oNuVJ0",
+  "tags": []
+}
